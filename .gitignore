@@ -220,3 +220,11 @@ __marimo__/
 
 # Brainstorming visual companion
 .superpowers/
+
+# Intermediate build artifacts (deleted by build_map; never deployed)
+web/data/*.geojsonseq
+web/data/*.tsv
+sources/la_city_boundary.geojson
+sources/bsl_streetlights.geojson
+# NOTE: web/data/*.pmtiles and web/data/*.tsv.gz are intentionally committed —
+# GitHub Pages serves them. Regenerate with `build_map`.
