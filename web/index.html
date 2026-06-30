@@ -14,8 +14,21 @@
       position: absolute; top: 12px; left: 12px; z-index: 1;
       background: rgba(255,255,255,.94); padding: 12px 14px; border-radius: 8px;
       box-shadow: 0 1px 6px rgba(0,0,0,.3); max-width: 270px; font-size: 13px;
+      max-height: calc(100vh - 24px); overflow-y: auto;
     }
-    #panel h1 { font-size: 15px; margin: 0 0 6px; }
+    #panel h1 { font-size: 15px; margin: 0 26px 6px 0; }
+    #legend-collapse {
+      position: absolute; top: 6px; right: 8px; border: none; background: none;
+      font-size: 20px; line-height: 1; color: #666; cursor: pointer; padding: 2px 4px;
+    }
+    #legend-fab {
+      position: absolute; top: 12px; left: 12px; z-index: 3; display: none;
+      background: rgba(255,255,255,.95); border: 1px solid #bbb; border-radius: 8px;
+      padding: 8px 12px; box-shadow: 0 1px 6px rgba(0,0,0,.3); cursor: pointer;
+      font: 600 13px system-ui, sans-serif;
+    }
+    body.legend-collapsed #panel { display: none; }
+    body.legend-collapsed #legend-fab { display: block; }
     #panel p { margin: 0 0 8px; color: #333; }
     .legend-row { display: flex; align-items: center; margin: 3px 0; }
     .swatch { width: 16px; height: 16px; border-radius: 3px; margin-right: 8px;
@@ -53,7 +66,9 @@
            placeholder="Search an address…" />
     <ul id="search-results"></ul>
   </div>
+  <button id="legend-fab" type="button" aria-label="Show legend">&#9776; Legend</button>
   <div id="panel">
+    <button id="legend-collapse" type="button" aria-label="Hide legend" title="Hide legend">&times;</button>
     <h1>Street-Light Assessment</h1>
     <p>City of Los Angeles parcels, colored by annual assessment. Click a parcel for details.</p>
     <div id="legend"><span id="status">Loading…</span></div>

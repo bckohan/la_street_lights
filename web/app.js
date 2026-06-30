@@ -126,6 +126,20 @@ async function init() {
   buildLegend(scale);
   wirePopup();
   wireSearch();
+  wireLegendCollapse();
+}
+
+// Collapsible legend: a "×" hides it to a floating "Legend" button, and on
+// narrow (mobile) screens tapping the map auto-collapses it so it stops
+// covering the map. The button re-opens it.
+function wireLegendCollapse() {
+  const body = document.body;
+  const collapse = () => body.classList.add("legend-collapsed");
+  const expand = () => body.classList.remove("legend-collapsed");
+  document.getElementById("legend-collapse").addEventListener("click", collapse);
+  document.getElementById("legend-fab").addEventListener("click", expand);
+  const isNarrow = () => window.matchMedia("(max-width: 640px)").matches;
+  map.on("click", () => { if (isNarrow()) collapse(); });
 }
 
 function buildLegend(scale) {
