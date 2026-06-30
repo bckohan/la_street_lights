@@ -149,12 +149,48 @@ function buildLegend(scale) {
     `<span class="swatch" style="background:#ff9e1b;width:12px;height:12px;border-radius:50%"></span>` +
     `<label for="sl-toggle">BSL streetlights</label></div>`
   );
+  // Land-use filter checkboxes (toggle assessed parcels on/off by category).
+  const luBoxes = LAND_USE_TYPES.map((t, i) =>
+    `<label class="lu-item"><input type="checkbox" class="lu-cb" value="${t}" checked />${t}</label>`
+  ).join("");
+  rows.push(
+    `<div style="margin-top:8px;font-weight:600">Land use ` +
+    `<a id="lu-all" style="cursor:pointer;color:#2c7fb8;font-weight:400">all</a> · ` +
+    `<a id="lu-none" style="cursor:pointer;color:#2c7fb8;font-weight:400">none</a></div>` +
+    `<div class="lu-filter">${luBoxes}</div>`
+  );
+
   el.innerHTML =
     `<div style="font-weight:600;margin-bottom:4px">Annual assessment</div>` + rows.join("");
 
   document.getElementById("sl-toggle").addEventListener("change", (e) => {
     map.setLayoutProperty("streetlights", "visibility", e.target.checked ? "visible" : "none");
   });
+
+  const cbs = [...el.querySelectorAll(".lu-cb")];
+  cbs.forEach((cb) => cb.addEventListener("change", () => applyLandUseFilter(cbs)));
+  el.querySelector("#lu-all").addEventListener("click", () => {
+    cbs.forEach((c) => (c.checked = true)); applyLandUseFilter(cbs);
+  });
+  el.querySelector("#lu-none").addEventListener("click", () => {
+    cbs.forEach((c) => (c.checked = false)); applyLandUseFilter(cbs);
+  });
+}
+
+// The 8 primary land-use categories (see the assessment roll / Engineer's Report).
+const LAND_USE_TYPES = [
+  "Residential", "Retail", "Office", "Industrial",
+  "Institutional", "Public", "Utility", "Undeveloped",
+];
+
+// Show only the checked land-use categories in the value choropleth.
+function applyLandUseFilter(cbs) {
+  const selected = cbs.filter((c) => c.checked).map((c) => c.value);
+  const base = ["has", "assessment"];
+  const filter = selected.length === cbs.length
+    ? base
+    : ["all", base, ["in", ["get", "land_use"], ["literal", selected]]];
+  map.setFilter("parcels-value", filter);
 }
 
 function swatchRow(color, label) {
