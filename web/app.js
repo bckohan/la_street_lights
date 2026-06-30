@@ -197,7 +197,7 @@ function updateLuReadout(cbs) {
   ro.innerHTML =
     `<div style="margin-top:6px;border-top:1px solid #ddd;padding-top:5px;font-size:12px">` +
     `<b>Selected</b><br/>` +
-    `Votes: ${v.toLocaleString()} / ${T.votes.toLocaleString()} (${pct(v, T.votes)})<br/>` +
+    `Ballots: ${v.toLocaleString()} / ${T.votes.toLocaleString()} (${pct(v, T.votes)})<br/>` +
     `Assessed: ${money(a)} / ${money(T.assessed)} (${pct(a, T.assessed)})</div>`;
 }
 
