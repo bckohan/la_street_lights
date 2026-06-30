@@ -228,3 +228,6 @@ sources/la_city_boundary.geojson
 sources/bsl_streetlights.geojson
 # NOTE: web/data/*.pmtiles and web/data/*.tsv.gz are intentionally committed —
 # GitHub Pages serves them. Regenerate with `build_map`.
+
+# Large source datasets (public LA County downloads; not needed for the site)
+sources/*.zip
