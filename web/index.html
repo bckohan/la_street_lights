@@ -57,6 +57,13 @@
     .lu-item { display: flex; align-items: center; width: 50%; box-sizing: border-box;
                padding: 1px 0; cursor: pointer; }
     .lu-item input { margin: 0 5px 0 0; }
+    /* Mobile: stack the search (row 1, clearing the zoom controls) above the
+       legend panel / button (row 2) so they don't overlap. */
+    @media (max-width: 640px) {
+      #search { left: 8px; right: 52px; width: auto; max-width: none; transform: none; }
+      #panel { top: 58px; max-height: calc(100vh - 70px); }
+      #legend-fab { top: 58px; }
+    }
   </style>
 </head>
 <body>
