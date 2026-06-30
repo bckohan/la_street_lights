@@ -105,6 +105,33 @@ ROLL_FIELDS = [
 ROLL_TEXT_FIELDS = {"lighting_class", "land_use", "parcel_size_land_use"}
 
 
+def _landuse_stats(roll_csv: Path) -> dict:
+    """Per land-use totals from the roll: vote (ballot) count and assessed $.
+
+    One ballot per assessed parcel; assessed value is the sum of annual
+    assessments. The browser sums the selected categories for live percentages.
+    """
+    cats: dict[str, dict] = {}
+    with roll_csv.open(newline="") as fh:
+        for row in csv.DictReader(fh):
+            try:
+                val = float(row["assessment"])
+            except (TypeError, ValueError):
+                continue
+            c = cats.setdefault(row["land_use"], {"votes": 0, "assessed": 0.0})
+            c["votes"] += 1
+            c["assessed"] += val
+    for c in cats.values():
+        c["assessed"] = round(c["assessed"], 2)
+    return {
+        "categories": cats,
+        "total": {
+            "votes": sum(c["votes"] for c in cats.values()),
+            "assessed": round(sum(c["assessed"] for c in cats.values()), 2),
+        },
+    }
+
+
 def _load_keep(city_csv: Path, roll_csv: Path, prefix: str | None):
     """Build {ain: (roll_row_or_None, in_city, in_district)} and roll values.
 
@@ -261,10 +288,12 @@ def _stream_filtered(
             if row is not None:
                 props.update(row)  # assessment + units + land use + benefit points
             if in_district:
-                # Empty properties so adjacent district parcels coalesce into
-                # solid regions at low zoom.
+                # Carry land_use so the district layer is filterable by type;
+                # adjacent same-land_use parcels still coalesce at low zoom.
                 dout.write(json.dumps(
-                    {"type": "Feature", "properties": {}, "geometry": feat["geometry"]},
+                    {"type": "Feature",
+                     "properties": {"land_use": (row or {}).get("land_use", "")},
+                     "geometry": feat["geometry"]},
                     separators=(",", ":")) + "\n")
             if addr:
                 c = _centroid(feat["geometry"])
@@ -350,8 +379,9 @@ def _run_tippecanoe_district(
 ) -> None:
     """Build the single-color District 5500 coverage layer.
 
-    Coalesces adjacent district parcels into solid regions so the footprint
-    survives low zoom (where individual parcels would otherwise be dropped).
+    Each polygon carries ``land_use`` (so the layer is filterable by type);
+    tippecanoe coalesces adjacent same-land_use parcels into solid regions so
+    the footprint survives low zoom (where individual parcels would drop out).
     """
     cmd = [
         "tippecanoe", "-o", str(pmtiles), "-l", "district", "-P", "--force",
@@ -415,6 +445,11 @@ def main(
         breaks = _quantile_breaks(values, bins)
     scale_path = _write_scale(out_dir, breaks, novalue_color)
     typer.echo(f"Wrote {scale_path}  ({scale_kind}) breaks={breaks}")
+
+    stats = _landuse_stats(roll_csv)
+    (out_dir / "landuse_stats.json").write_text(json.dumps(stats))
+    typer.echo(f"Wrote {out_dir / 'landuse_stats.json'}  "
+               f"({stats['total']['votes']:,} votes, ${stats['total']['assessed']:,.0f})")
 
     if not skip_boundary:
         raw = Path("sources/la_city_boundary.geojson")

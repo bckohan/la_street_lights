@@ -50,6 +50,8 @@ map.on("load", init);
 
 async function init() {
   const scale = await (await fetch("data/scale.json")).json();
+  try { LU_STATS = await (await fetch("data/landuse_stats.json")).json(); }
+  catch (e) { console.warn("landuse stats not loaded:", e); }
 
   // Build a MapLibre `step` expression: color by assessment using the breaks.
   const fillColor = ["step", ["get", scale.field], scale.colors[0]];
@@ -157,7 +159,8 @@ function buildLegend(scale) {
     `<div style="margin-top:8px;font-weight:600">Land use ` +
     `<a id="lu-all" style="cursor:pointer;color:#2c7fb8;font-weight:400">all</a> · ` +
     `<a id="lu-none" style="cursor:pointer;color:#2c7fb8;font-weight:400">none</a></div>` +
-    `<div class="lu-filter">${luBoxes}</div>`
+    `<div class="lu-filter">${luBoxes}</div>` +
+    `<div id="lu-readout"></div>`
   );
 
   el.innerHTML =
@@ -175,6 +178,27 @@ function buildLegend(scale) {
   el.querySelector("#lu-none").addEventListener("click", () => {
     cbs.forEach((c) => (c.checked = false)); applyLandUseFilter(cbs);
   });
+  updateLuReadout(cbs);
+}
+
+// Update the legend readout: selected vs total votes and assessed value (%).
+function updateLuReadout(cbs) {
+  const ro = document.getElementById("lu-readout");
+  if (!ro || !LU_STATS) return;
+  const money = (n) =>
+    n >= 1e6 ? "$" + (n / 1e6).toFixed(1) + "M" : "$" + Math.round(n).toLocaleString();
+  let v = 0, a = 0;
+  cbs.filter((c) => c.checked).forEach((c) => {
+    const s = LU_STATS.categories[c.value];
+    if (s) { v += s.votes; a += s.assessed; }
+  });
+  const T = LU_STATS.total;
+  const pct = (x, t) => (t ? (x / t * 100) : 0).toFixed(1) + "%";
+  ro.innerHTML =
+    `<div style="margin-top:6px;border-top:1px solid #ddd;padding-top:5px;font-size:12px">` +
+    `<b>Selected</b><br/>` +
+    `Votes: ${v.toLocaleString()} / ${T.votes.toLocaleString()} (${pct(v, T.votes)})<br/>` +
+    `Assessed: ${money(a)} / ${money(T.assessed)} (${pct(a, T.assessed)})</div>`;
 }
 
 // The 8 primary land-use categories (see the assessment roll / Engineer's Report).
@@ -183,14 +207,16 @@ const LAND_USE_TYPES = [
   "Institutional", "Public", "Utility", "Undeveloped",
 ];
 
-// Show only the checked land-use categories in the value choropleth.
+// Show only the checked land-use categories — in both the zoomed-in value
+// choropleth and the low-zoom uniform district fill.
 function applyLandUseFilter(cbs) {
   const selected = cbs.filter((c) => c.checked).map((c) => c.value);
-  const base = ["has", "assessment"];
-  const filter = selected.length === cbs.length
-    ? base
-    : ["all", base, ["in", ["get", "land_use"], ["literal", selected]]];
-  map.setFilter("parcels-value", filter);
+  const all = selected.length === cbs.length;
+  const inSelected = ["in", ["get", "land_use"], ["literal", selected]];
+  map.setFilter("parcels-value",
+    all ? ["has", "assessment"] : ["all", ["has", "assessment"], inSelected]);
+  map.setFilter("district-fill", all ? null : inSelected);
+  updateLuReadout(cbs);
 }
 
 function swatchRow(color, label) {
@@ -200,6 +226,10 @@ function swatchRow(color, label) {
 // APN -> address, populated from the address index (used by the popup so the
 // address need not be duplicated into every parcel tile).
 const ADDR_BY_AIN = new Map();
+
+// Per-land-use vote/assessed totals (from data/landuse_stats.json); the legend
+// readout sums the selected categories against these.
+let LU_STATS = null;
 
 // Toggle the lighting-class explainer inside a popup (called from inline ⓘ).
 function toggleLightingInfo(el) {
