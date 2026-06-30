@@ -247,6 +247,25 @@ const LIGHTING_INFO =
   `<b>3 – Pedestrian</b>: smaller lights on existing poles; an incremental benefit.<br/>` +
   `Multiple (e.g. 1,2,3): the parcel benefits from more than one type; benefit points are combined.</div>`;
 
+// Copy the (dash-free) AIN to the clipboard — TTC's bill search rejects dashes.
+function copyAin(ain) {
+  if (navigator.clipboard) navigator.clipboard.writeText(ain).catch(() => {});
+}
+
+// Link to the LA County Treasurer & Tax Collector bill lookup. There's no
+// stable AIN->PDF URL (TTC fetches bills through an interactive app we can't
+// drive cross-origin), so a single click opens the duplicate-bill page and
+// copies the 10-digit AIN to paste.
+function taxBillLinkHTML(ain) {
+  return (
+    `<br/><a href="https://ttc.lacounty.gov/request-duplicate-bill/" ` +
+    `target="_blank" rel="noopener" onclick="copyAin('${ain}')" style="color:#2c7fb8" ` +
+    `title="Opens LA County TTC and copies this AIN (no dashes). Paste it, submit, ` +
+    `then open the 2025/26 bill.">LA County tax bill &#8599;</a>` +
+    `<div style="font-size:11px;color:#777;margin-top:1px">opens TTC · AIN copied — paste &amp; submit</div>`
+  );
+}
+
 // HTML for a parcel's assessment popup (shared by click + address search).
 function parcelPopupHTML(p) {
   const ain = String(p.ain || "");
@@ -257,6 +276,7 @@ function parcelPopupHTML(p) {
   const address = ADDR_BY_AIN.get(ain);  // looked up from the address index
   let html = `<b>APN ${dashed}</b>`;
   if (address) html += `<br/>${titleCase(address)}`;
+  html += taxBillLinkHTML(ain);
 
   if (p.assessment == null) {
     html += `<br/><i>Not in District 5500 (no assessment)</i>`;
