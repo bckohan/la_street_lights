@@ -208,9 +208,20 @@ def _quantile_breaks(values: list[float], bins: int) -> list[float]:
     return out
 
 
-def _write_scale(out_dir: Path, breaks: list[float], novalue: str) -> Path:
-    """Write scale.json (breaks + one color per bin) and return its path."""
-    colors = [_viridis(i / max(1, len(breaks))) for i in range(len(breaks) + 1)]
+def _write_scale(
+    out_dir: Path, breaks: list[float], novalue: str, top_color: str = ""
+) -> Path:
+    """Write scale.json (breaks + one color per bin) and return its path.
+
+    With ``top_color`` set, the viridis ramp is sampled over all-but-the-top bin
+    (so the lower bins keep the same colors as without the extra top bin) and the
+    highest bin gets ``top_color`` — e.g. an orange overflow bucket.
+    """
+    n = len(breaks) + 1  # number of bins
+    if top_color:
+        colors = [_viridis(i / max(1, n - 2)) for i in range(n - 1)] + [top_color]
+    else:
+        colors = [_viridis(i / max(1, len(breaks))) for i in range(n)]
     scale = {
         "field": "assessment",
         "breaks": breaks,
@@ -408,8 +419,12 @@ def main(
     boundary_url: str = typer.Option(BOUNDARY_URL, "--boundary-url"),
     bins: int = typer.Option(7, "--bins", help="Number of choropleth color bins."),
     extra_breaks: str = typer.Option(
-        "1000,3000", "--extra-breaks",
+        "1000,3000,8000", "--extra-breaks",
         help="Comma-separated high-end break values appended above the computed scale.",
+    ),
+    top_color: str = typer.Option(
+        "#ff7f0e", "--top-color",
+        help="Fixed color for the highest bin (empty = extend the viridis ramp).",
     ),
     scale_kind: str = typer.Option(
         "quantile", "--scale", help="Color-break method: 'quantile' or 'log'."
@@ -454,7 +469,7 @@ def main(
             breaks.append(round(b, 2))
     breaks = sorted(set(breaks))
 
-    scale_path = _write_scale(out_dir, breaks, novalue_color)
+    scale_path = _write_scale(out_dir, breaks, novalue_color, top_color)
     typer.echo(f"Wrote {scale_path}  ({scale_kind}) breaks={breaks}")
 
     stats = _landuse_stats(roll_csv)
