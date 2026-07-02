@@ -69,20 +69,19 @@ async function init() {
     paint: { "fill-color": DISTRICT_COLOR, "fill-opacity": 0.55 },
   });
 
-  // No-value parcels (in city, not in the roll) — neutral gray. Only when
-  // zoomed in; at low zoom the flat district color stands alone.
+  // No-value parcels (in city, not in the roll) — neutral gray. Part of the
+  // per-parcel "heatmap"; the Heatmap toggle shows/hides these parcel layers
+  // to fall back to the flat district color.
   map.addLayer({
     id: "parcels-novalue", type: "fill", source: "parcels", "source-layer": SOURCE_LAYER,
-    minzoom: 12,
     filter: ["!", ["has", "assessment"]],
     paint: { "fill-color": scale.novalue_color, "fill-opacity": 0.55 },
   });
 
-  // Parcels with an assessment — the value choropleth. Zoomed in only, so it
-  // overlays (and takes over from) the flat district color.
+  // Parcels with an assessment — the value choropleth (shown at all zooms over
+  // the flat district base).
   map.addLayer({
     id: "parcels-value", type: "fill", source: "parcels", "source-layer": SOURCE_LAYER,
-    minzoom: 12,
     filter: ["has", "assessment"],
     paint: { "fill-color": fillColor, "fill-opacity": 0.8 },
   });
@@ -178,11 +177,29 @@ function buildLegend(scale) {
   );
 
   el.innerHTML =
+    `<button id="heatmap-toggle" class="pill on" type="button" aria-pressed="true"` +
+    ` title="Toggle the per-parcel value heatmap (off shows the flat district color)"` +
+    ` style="margin-bottom:8px">` +
+    `<span class="pill-label">Heatmap</span><span class="pill-state">on</span></button>` +
     `<div style="font-weight:600;margin-bottom:4px">Annual assessment</div>` + rows.join("");
 
   document.getElementById("sl-toggle").addEventListener("change", (e) => {
     map.setLayoutProperty("streetlights", "visibility", e.target.checked ? "visible" : "none");
   });
+
+  // Heatmap pill: show/hide the per-parcel layers. Off reveals the flat
+  // District 5500 color (which is always drawn underneath) at any zoom.
+  const hm = document.getElementById("heatmap-toggle");
+  const setHeatmap = (on) => {
+    hm.classList.toggle("on", on);
+    hm.classList.toggle("off", !on);
+    hm.querySelector(".pill-state").textContent = on ? "on" : "off";
+    hm.setAttribute("aria-pressed", String(on));
+    const vis = on ? "visible" : "none";
+    ["parcels-value", "parcels-novalue", "parcels-outline"].forEach((id) =>
+      map.setLayoutProperty(id, "visibility", vis));
+  };
+  hm.addEventListener("click", () => setHeatmap(!hm.classList.contains("on")));
 
   const cbs = [...el.querySelectorAll(".lu-cb")];
   cbs.forEach((cb) => cb.addEventListener("change", () => applyLandUseFilter(cbs)));

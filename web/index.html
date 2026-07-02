@@ -57,6 +57,17 @@
     .lu-item { display: flex; align-items: center; width: 50%; box-sizing: border-box;
                padding: 1px 0; cursor: pointer; }
     .lu-item input { margin: 0 5px 0 0; }
+    .pill {
+      display: inline-flex; align-items: stretch; padding: 0; cursor: pointer;
+      border: 1px solid #ccc; border-radius: 999px; overflow: hidden;
+      background: #fff; font: 600 12px system-ui, sans-serif; user-select: none;
+    }
+    .pill > span { padding: 4px 11px; line-height: 1.4; }
+    .pill-label { background: #eaeef4; color: #333; }
+    .pill-state { color: #fff; text-transform: uppercase; letter-spacing: .3px;
+                  transition: background .15s; }
+    .pill.on .pill-state { background: #2c9f4a; }
+    .pill.off .pill-state { background: #9aa0a6; }
     /* Mobile: stack the search (row 1, clearing the zoom controls) above the
        legend panel / button (row 2) so they don't overlap. */
     @media (max-width: 640px) {
