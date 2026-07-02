@@ -408,7 +408,7 @@ def main(
     boundary_url: str = typer.Option(BOUNDARY_URL, "--boundary-url"),
     bins: int = typer.Option(7, "--bins", help="Number of choropleth color bins."),
     extra_breaks: str = typer.Option(
-        "1000,3000,8000", "--extra-breaks",
+        "1000,3000", "--extra-breaks",
         help="Comma-separated high-end break values appended above the computed scale.",
     ),
     scale_kind: str = typer.Option(

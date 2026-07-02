@@ -1,20 +1,21 @@
-#!/usr/bin/env python3
-"""Static file server for the parcel map, with HTTP Range support.
+"""Serve the static map site with HTTP Range support (Typer command).
 
 PMTiles fetches byte ranges of ``parcels.pmtiles`` via HTTP ``Range`` requests.
 Python's stdlib ``http.server`` ignores ``Range`` and returns the whole file,
 which breaks PMTiles, so this handler implements single-range responses.
-
-Usage:  python web/serve.py [port]   (default 8765), then open the printed URL.
 """
 
 from __future__ import annotations
 
 import os
 import re
-import sys
 from functools import partial
 from http.server import HTTPServer, SimpleHTTPRequestHandler
+from pathlib import Path
+
+import typer
+
+app = typer.Typer(add_completion=False, help="Serve the map site locally.")
 
 
 class RangeHandler(SimpleHTTPRequestHandler):
@@ -67,13 +68,25 @@ class RangeHandler(SimpleHTTPRequestHandler):
             remaining -= len(chunk)
 
 
-def main() -> None:
-    port = int(sys.argv[1]) if len(sys.argv) > 1 else 8765
-    web_dir = os.path.dirname(os.path.abspath(__file__))
+@app.command()
+def main(
+    port: int = typer.Argument(8765, help="Port to listen on."),
+    directory: Path = typer.Option(
+        Path("web"), "--directory", "-d", help="Directory to serve."
+    ),
+) -> None:
+    """Serve DIRECTORY at http://localhost:PORT with HTTP Range support."""
+    web_dir = str(directory.resolve())
+    if not os.path.isdir(web_dir):
+        typer.secho(f"Not a directory: {web_dir}", fg=typer.colors.RED, err=True)
+        raise typer.Exit(1)
     handler = partial(RangeHandler, directory=web_dir)
-    print(f"Serving {web_dir} at http://localhost:{port}  (Ctrl-C to stop)")
-    HTTPServer(("127.0.0.1", port), handler).serve_forever()
+    typer.echo(f"Serving {web_dir} at http://localhost:{port}  (Ctrl-C to stop)")
+    try:
+        HTTPServer(("127.0.0.1", port), handler).serve_forever()
+    except KeyboardInterrupt:
+        pass
 
 
 if __name__ == "__main__":
-    main()
+    app()
