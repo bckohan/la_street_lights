@@ -407,6 +407,10 @@ def main(
     out_dir: Path = typer.Option(Path("web/data"), "--out-dir"),
     boundary_url: str = typer.Option(BOUNDARY_URL, "--boundary-url"),
     bins: int = typer.Option(7, "--bins", help="Number of choropleth color bins."),
+    extra_breaks: str = typer.Option(
+        "1000,3000,8000", "--extra-breaks",
+        help="Comma-separated high-end break values appended above the computed scale.",
+    ),
     scale_kind: str = typer.Option(
         "quantile", "--scale", help="Color-break method: 'quantile' or 'log'."
     ),
@@ -443,6 +447,13 @@ def main(
         breaks = _log_breaks(values, bins)
     else:
         breaks = _quantile_breaks(values, bins)
+    # Append explicit high-end breaks (extra bins above the computed scale) so
+    # high-value parcels aren't all lumped into one top bin.
+    for b in (float(x) for x in extra_breaks.split(",") if x.strip()):
+        if not breaks or b > breaks[-1]:
+            breaks.append(round(b, 2))
+    breaks = sorted(set(breaks))
+
     scale_path = _write_scale(out_dir, breaks, novalue_color)
     typer.echo(f"Wrote {scale_path}  ({scale_kind}) breaks={breaks}")
 
